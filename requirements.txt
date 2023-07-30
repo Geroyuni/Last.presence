@@ -1,0 +1,5 @@
+Pillow==10.0.0
+pylast==5.2.0
+pypresence==4.3.0
+pystray==0.19.4
+winshell==0.6
