@@ -20,7 +20,8 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S')
 
 for l in logging.root.manager.loggerDict:
-    logging.getLogger(l).setLevel(logging.WARN)
+    logging.getLogger(l).setLevel(logging.WARNING)
+
 
 class LastPresence:
     """Takes your current song in Last.fm, puts it in your Discord profile."""
@@ -29,23 +30,16 @@ class LastPresence:
             self.settings = json.load(f)
 
         self.confirm_settings_setup()
-
-        self.network = pylast.LastFMNetwork(
-            api_key=self.settings["lastfm_api_key"],
-            api_secret=self.settings["lastfm_api_secret"])
-        self.user = self.network.get_user(self.settings["username"])
-        self.rpc = pypresence.Presence(self.settings["discord_rpc_presence"])
+        self.setup_lastfm()
+        self.setup_rpc()
 
         self.shortcut_startup_path = os.path.join(
             os.getenv("appdata"),
             "Microsoft\\Windows\\Start Menu\\Programs\\Startup",
             "Last.presence.lnk")
-
         self.last_track = None
         self.last_track_timestamp = None
         self.tray_icon = None
-
-        self.rpc.connect()
 
     def confirm_settings_setup(self):
         """Guide people through setting up the script properly."""
@@ -56,6 +50,35 @@ class LastPresence:
 
             ctypes.windll.user32.MessageBoxW(0, message, u"Last.presence", 0)
             quit()
+
+    def setup_lastfm(self):
+        """Set up Last.fm."""
+        self.network = pylast.LastFMNetwork(
+            api_key=self.settings["lastfm_api_key"],
+            api_secret=self.settings["lastfm_api_secret"])
+        self.user = self.network.get_user(self.settings["username"])
+        logging.info(f"Connected as {self.user.name}")
+
+    def setup_rpc(self):
+        """Set up Discord RPC."""
+        self.rpc = pypresence.Presence(
+            self.settings["discord_rpc_presence"])
+
+        while True:
+            try:
+                self.rpc.connect()
+                logging.info(f"Connected to Discord RPC")
+                break
+            except pypresence.exceptions.DiscordNotFound:
+                logging.error("Discord not found, retrying in 10s")
+
+            time.sleep(10)
+
+    def close(self):
+        """Clean things up and close cleanly."""
+        self.rpc.close()
+        self.tray_icon.stop()
+        logging.info("Closed RPC and tray icon cleanly")
 
     def run_tray_icon(self):
         """Create and run tray icon that contains settings."""
@@ -143,15 +166,15 @@ class LastPresence:
         cover = track.get_cover_image()
         duration = track.get_duration()
 
-        details = track.title.ljust(2)
-        state = track.artist.name.ljust(2)
+        details = track.title.ljust(2)[:128]
+        state = track.artist.name.ljust(2)[:128]
         large_text = None
         end = None
         button = None
 
         if album:
-            state = f"{track.artist.name} | {album.title}"
-            large_text = f"Album: {album.title}"
+            state = f"{track.artist.name} | {album.title}"[:128]
+            large_text = f"Album: {album.title}"[:128]
 
         if duration:
             end = self.last_track_timestamp + (duration / 1000)
@@ -176,25 +199,30 @@ class LastPresence:
             try:
                 lastpresence.update_presence()
             except pypresence.exceptions.PipeClosed:
-                logging.info("Re-connecting RPC due to pipe closing")
-                self.rpc.connect()
+                logging.warning("Restarting connection to Discord RPC")
+                self.setup_rpc()
                 lastpresence.update_presence(force_update=True)
+            except pylast.WSError as e:
+                if str(e) == "Track not found":
+                    logging.warning(
+                        "Track not found. It's possible you're scrobbling "
+                        "something very recently added to Last.fm")
+                elif str(e).endswith("HTTP code 500"):
+                    logging.warning(
+                        "Connection to Last.fm API failed with HTTP code 500. "
+                        "Your internet or Last.fm may be down")
+                else:
+                    logging.warning(f"pylast.WSError '{e}'")
+            except pylast.NetworkError as e:
+                logging.warning(f"pylast.NetworkError '{e}'")
             except (pylast.PyLastError, pypresence.PyPresenceException):
-                logging.warn(traceback.format_exc())
+                logging.warning(traceback.format_exc())
 
             time.sleep(10)
-
-    def close(self):
-        """Clean things up and close cleanly."""
-        self.tray_icon.stop()
-        self.rpc.clear()
-        self.rpc.close()
-        logging.info("Closed RPC and tray icon cleanly")
 
 
 if __name__ == "__main__":
     lastpresence = LastPresence()
-    logging.info(f"Connected as {lastpresence.user.name}")
 
     thread = threading.Thread(target=lastpresence.presence_update_loop)
     thread.daemon = True
