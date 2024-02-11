@@ -1,7 +1,6 @@
 {
-    "username": "Put your Last.fm username here",
-    "lastfm_api_key": "Put your Last.fm API key from last.fm/api/account/create here",
-    "lastfm_api_secret": "Put your Last.fm API secret from last.fm/api/account/create here",
+    "username": "",
+    "lastfm_api_key": "",
     "discord_rpc_presence": "1131823801454297190",
     "rpc_enabled": true,
     "profile_button_enabled": true
