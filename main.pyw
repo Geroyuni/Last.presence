@@ -1,3 +1,4 @@
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 import threading
 import traceback
@@ -20,10 +21,13 @@ import pylast
 
 ctypes.windll.shcore.SetProcessDpiAwareness(True)  # Avoids blurry context menu
 
+rotating_file_handler = RotatingFileHandler(
+    filename="log.txt", mode="a", maxBytes=5*1024*1024,
+    backupCount=1, encoding="utf-8", delay=0)
+
 logging.basicConfig(
-    filename="log.txt", encoding="utf-8", level=logging.INFO,
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S')
+    level=logging.INFO, format="%(asctime)s %(levelname)-8s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S", handlers=[rotating_file_handler])
 
 for l in logging.root.manager.loggerDict:
     logging.getLogger(l).setLevel(logging.WARNING)
