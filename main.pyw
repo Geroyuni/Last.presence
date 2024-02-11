@@ -14,6 +14,8 @@ import pystray
 import pylast
 
 
+ctypes.windll.shcore.SetProcessDpiAwareness(True)  # Avoids blurry context menu
+
 logging.basicConfig(
     filename="log.txt", encoding="utf-8", level=logging.INFO,
     format='%(asctime)s %(levelname)-8s %(message)s',
