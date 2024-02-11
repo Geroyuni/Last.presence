@@ -5,10 +5,13 @@ import logging
 import ctypes
 import time
 import json
+import sys
 import os
 
 from PIL import Image
 from pystray import Menu, MenuItem
+import flet as ft
+import webbrowser
 import pypresence
 import winshell
 import pystray
@@ -44,35 +47,125 @@ class LastPresence:
         self.last_track_timestamp = None
         self.tray_icon = None
 
-        with open("settings.json") as f:
-            self.settings = json.load(f)
-
-        self.confirm_settings_setup()
+        self.load_and_check_settings()
         self.setup_lastfm()
         self.setup_rpc()
 
-    def confirm_settings_setup(self):
-        """Guide people through setting up the script properly."""
-        if "Put your Last.fm username here" in self.settings["username"]:
-            message = (
-                u"You must add your Last.fm username, API key and secret "
-                u"to 'settings.json' before using this script.")
+    def load_and_check_settings(self):
+        """Load settings.json and warn user if settings are default."""
+        default_settings = {
+            "username": "",
+            "lastfm_api_key": "",
+            "discord_rpc_presence": "1131823801454297190",
+            "rpc_enabled": True,
+            "profile_button_enabled": True}
 
-            ctypes.windll.user32.MessageBoxW(0, message, u"Last.presence", 0)
-            quit()
+        try:
+            with open("settings.json") as f:
+                self.settings = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.settings = default_settings
+
+        for setting in ("username", "lastfm_api_key"):
+            if not self.settings[setting]:
+                ft.app(target=self.configuration_page)
+                break
+
+        for setting in ("username", "lastfm_api_key"):
+            if not self.settings[setting]:
+                quit()
+
+    def save_settings(self):
+        with open("settings.json", "w") as f:
+            json.dump(self.settings, f, indent=4)
+
+    def configuration_page(self, page: ft.Page):
+        """Setup page shown to user when first using the app."""
+        page.title = "Last.presence"
+        page.padding = 40
+        page.window_width = 600
+        page.window_height = 450
+        page.window_center()
+        page.window_resizable = False
+        page.window_maximizable = False
+        center = ft.MainAxisAlignment.CENTER
+
+        container_description = ft.Container(content=ft.Text(
+            "Enter the Last.fm username you want to use, and an API key "
+            "obtained from Last.fm.",
+            size=20, width=500, text_align=ft.TextAlign.CENTER))
+        container_description.margin = ft.margin.only(bottom=40)
+        username = ft.TextField(
+            label="Last.fm username", value=self.settings["username"],
+            autofocus=True, width=400)
+        api_key = ft.TextField(
+            label="Last.fm API key", value=self.settings["lastfm_api_key"],
+            width=400)
+        container_api_key = ft.Container(content=api_key)
+        container_api_key.margin = ft.margin.only(bottom=40)
+
+        def continue_click(_):
+            network = pylast.LastFMNetwork(api_key=api_key.value)
+            user = network.get_user(username.value)
+
+            try:
+                user.get_playcount()
+            except pylast.WSError:
+                page.dialog = failure_dialog
+                failure_dialog.open = True
+                page.update()
+            else:
+                self.settings["username"] = username.value
+                self.settings["lastfm_api_key"] = api_key.value
+                self.save_settings()
+
+                page.dialog = success_dialog
+                success_dialog.open = True
+                page.update()
+
+        def create_api_click(_, *args):
+            webbrowser.open("http://last.fm/api/account/create")
+
+        def close_failure_dialog(_):
+            failure_dialog.open = False
+            page.update()
+
+        def close_success_dialog(_):
+            page.window_close()
+
+        continue_button = ft.FilledButton(
+            "Continue", on_click=continue_click)
+        create_api_button = ft.OutlinedButton(
+            "Create API key", on_click=create_api_click)
+        failure_dialog = ft.AlertDialog(
+            title=ft.Text("Error"),
+            content=ft.Text("Invalid username or API key, please re-check."),
+            actions=[ft.TextButton(
+                "OK", on_click=close_failure_dialog, autofocus=True)])
+        success_dialog = ft.AlertDialog(
+            title=ft.Text("Setup successful"),
+            content=ft.Text(
+                "Last.presence will run in your taskbar as a tray icon. "
+                "Right-click it for settings."),
+            actions=[ft.TextButton(
+                "Finish", on_click=close_success_dialog, autofocus=True)])
+
+        page.add(
+            ft.Row([container_description], alignment=center),
+            ft.Row([username], alignment=center),
+            ft.Row([container_api_key], alignment=center),
+            ft.Row([continue_button, create_api_button], alignment=center))
 
     def setup_lastfm(self):
         """Set up Last.fm."""
         self.network = pylast.LastFMNetwork(
-            api_key=self.settings["lastfm_api_key"],
-            api_secret=self.settings["lastfm_api_secret"])
+            api_key=self.settings["lastfm_api_key"])
         self.user = self.network.get_user(self.settings["username"])
         logging.info(f"Connected as {self.user.name}")
 
     def setup_rpc(self):
         """Set up Discord RPC."""
-        self.rpc = pypresence.Presence(
-            self.settings["discord_rpc_presence"])
+        self.rpc = pypresence.Presence(self.settings["discord_rpc_presence"])
 
         while True:
             try:
@@ -96,9 +189,23 @@ class LastPresence:
         def toggle_setting(setting_name, tray_item):
             """Helper function to alter and save a setting tweak."""
             self.settings[setting_name] = not tray_item.checked
+            self.save_settings()
 
-            with open("settings.json", "w") as f:
-                json.dump(self.settings, f, indent=4)
+        def show_setup(_, item):
+            """Let user reconfigure username and API key."""
+            username = self.settings["username"]
+            api_key = self.settings["lastfm_api_key"]
+            ft.app(target=self.configuration_page)
+
+            new_username = self.settings["username"]
+            new_api_key = self.settings["lastfm_api_key"]
+
+            if username == new_username and api_key == new_api_key:
+                return
+
+            self.close()
+            os.execv(
+                sys.executable, [os.path.basename(sys.executable)] + sys.argv)
 
         def set_rpc(_, item):
             """Allows or prevents RPC from updating while script is running."""
@@ -155,7 +262,7 @@ class LastPresence:
             app_names.append(MenuItem(app, set_app, check_app, radio=True))
 
         menu = Menu(
-            MenuItem(f"Connected as {lastpresence.user.name}", None),
+            MenuItem(f"Connected as {lastpresence.user.name}", show_setup),
             MenuItem("Enable Last.presence", set_rpc, check_rpc),
             MenuItem("Run at startup", set_startup, check_startup),
             Menu.SEPARATOR,
