@@ -173,7 +173,7 @@ class LastPresence:
         button = None
 
         if album:
-            state = f"{track.artist.name} | {album.title}"[:128]
+            state = f"{track.artist.name} • {album.title}"[:128]
             large_text = f"Album: {album.title}"[:128]
 
         if duration:
