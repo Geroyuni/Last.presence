@@ -8,6 +8,7 @@ import json
 import os
 
 from PIL import Image
+from pystray import Menu, MenuItem
 import pypresence
 import winshell
 import pystray
@@ -28,13 +29,13 @@ for l in logging.root.manager.loggerDict:
 class LastPresence:
     """Takes your current song in Last.fm, puts it in your Discord profile."""
     def __init__(self):
-        with open("settings.json") as f:
-            self.settings = json.load(f)
-
-        self.confirm_settings_setup()
-        self.setup_lastfm()
-        self.setup_rpc()
-
+        self.apps = {
+            "Last.fm": "1131823801454297190",
+            "Music": "1204332455729827900",
+            "YT Music": "1204315253085839371",
+            "YouTube Music": "1204329359616376882",
+            "Apple Music": "1204329881563828274",
+            "Tidal": "1204332410872004628"}
         self.shortcut_startup_path = os.path.join(
             os.getenv("appdata"),
             "Microsoft\\Windows\\Start Menu\\Programs\\Startup",
@@ -42,6 +43,13 @@ class LastPresence:
         self.last_track = None
         self.last_track_timestamp = None
         self.tray_icon = None
+
+        with open("settings.json") as f:
+            self.settings = json.load(f)
+
+        self.confirm_settings_setup()
+        self.setup_lastfm()
+        self.setup_rpc()
 
     def confirm_settings_setup(self):
         """Guide people through setting up the script properly."""
@@ -92,7 +100,7 @@ class LastPresence:
             with open("settings.json", "w") as f:
                 json.dump(self.settings, f, indent=4)
 
-        def toggle_rpc(_, item):
+        def set_rpc(_, item):
             """Allows or prevents RPC from updating while script is running."""
             toggle_setting("rpc_enabled", item)
 
@@ -101,7 +109,7 @@ class LastPresence:
             else:
                 self.rpc.clear()
 
-        def toggle_startup(_, item):
+        def set_startup(_, item):
             """Creates or removes startup shortcut for the script."""
             if os.path.exists(self.shortcut_startup_path):
                 os.remove(self.shortcut_startup_path)
@@ -116,27 +124,46 @@ class LastPresence:
 
             logging.info(f"Created shortcut at {self.shortcut_startup_path}")
 
-        def toggle_button(_, item):
+        def set_button(_, item):
             toggle_setting("profile_button_enabled", item)
+            self.update_presence(force_update=True)
+
+        def set_app(_, item):
+            """Alters name shown to right of 'Playing' and above song name."""
+            app_id = self.apps[str(item)]
+            self.settings["discord_rpc_presence"] = app_id
+
+            self.save_settings()
+            self.rpc.close()
+            self.setup_rpc()
             self.update_presence(force_update=True)
 
         def open_log(_, item):
             os.startfile("log.txt")
 
-        rpc_check = lambda _: self.settings["rpc_enabled"]
-        button_check = lambda _: self.settings["profile_button_enabled"]
-        startup_check = lambda _: os.path.exists(self.shortcut_startup_path)
+        @staticmethod
+        def check_app(item):
+            app_id = self.apps[str(item)]
+            return app_id == self.settings["discord_rpc_presence"]
 
-        menu = pystray.Menu(
-            pystray.MenuItem(f"Connected as {lastpresence.user.name}", None),
-            pystray.MenuItem("Enable Last.presence", toggle_rpc, rpc_check),
-            pystray.MenuItem("Run at startup", toggle_startup, startup_check),
-            pystray.Menu.SEPARATOR,
-            pystray.MenuItem(
-                "Show profile button", toggle_button, button_check),
-            pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Open log file", open_log),
-            pystray.MenuItem('Quit', self.close))
+        check_rpc = lambda _: self.settings["rpc_enabled"]
+        check_button = lambda _: self.settings["profile_button_enabled"]
+        check_startup = lambda _: os.path.exists(self.shortcut_startup_path)
+
+        app_names = []
+        for app in self.apps:
+            app_names.append(MenuItem(app, set_app, check_app, radio=True))
+
+        menu = Menu(
+            MenuItem(f"Connected as {lastpresence.user.name}", None),
+            MenuItem("Enable Last.presence", set_rpc, check_rpc),
+            MenuItem("Run at startup", set_startup, check_startup),
+            Menu.SEPARATOR,
+            MenuItem("Application name", Menu(*app_names)),
+            MenuItem("Show profile button", set_button, check_button),
+            Menu.SEPARATOR,
+            MenuItem("Open log file", open_log),
+            MenuItem('Quit', self.close))
 
         name = "Last.presence"
         icon = Image.open("assets/icon.ico")
@@ -182,11 +209,11 @@ class LastPresence:
             end = self.last_track_timestamp + (duration / 1000)
 
         if not cover or "2a96cbd8b46e442fc41c2b86b821562f" in cover:
-            cover = "https://files.catbox.moe/ai8jco.png"
+            cover = "https://files.catbox.moe/qqh1rn.png"
 
         if self.settings["profile_button_enabled"]:
             button = [{
-                "label": "View Last.fm profile",
+                "label": "View listening profile",
                 "url": f"https://last.fm/user/{self.user.name}"}]
 
         self.rpc.update(
