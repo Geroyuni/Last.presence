@@ -77,7 +77,7 @@ class LastPresence:
 
         for setting in ("username", "lastfm_api_key"):
             if not self.settings[setting]:
-                quit()
+                sys.exit(0)
 
     def save_settings(self):
         with open("settings.json", "w") as f:
@@ -87,11 +87,11 @@ class LastPresence:
         """Setup page shown to user when first using the app."""
         page.title = "Last.presence"
         page.padding = 40
-        page.window_width = 600
-        page.window_height = 450
-        page.window_center()
-        page.window_resizable = False
-        page.window_maximizable = False
+        page.window.width = 600
+        page.window.height = 450
+        page.window.center()
+        page.window.resizable = False
+        page.window.maximizable = False
         center = ft.MainAxisAlignment.CENTER
 
         container_description = ft.Container(content=ft.Text(
@@ -227,7 +227,7 @@ class LastPresence:
                 logging.info(f"Removed {self.shortcut_startup_path} shortcut")
                 return
 
-            file_path = os.path.abspath(__file__)
+            file_path = sys.executable
 
             with winshell.shortcut(self.shortcut_startup_path) as link:
                 link.path = file_path
@@ -277,7 +277,7 @@ class LastPresence:
             MenuItem('Quit', self.close))
 
         name = "Last.presence"
-        icon = Image.open("assets/icon.ico")
+        icon = Image.open(os.path.join(sys._MEIPASS, "icon.ico"))
 
         self.tray_icon = pystray.Icon(name, icon, name, menu)
         self.tray_icon.run()
