@@ -12,7 +12,7 @@ This is made for Windows, because I mainly use Windows.
 ## How to install and run
 * [Download and install Python 3.10+](https://www.python.org/downloads/)
   * Make sure that you select 'Add Python to enviroment variables' during installation
-* [Download and unzip the latest version of the script](archive/refs/heads/main.zip)
+* [Download and unzip the latest version of the script](https://github.com/Geroyuni/Last.presence/archive/refs/heads/main.zip)
 * Run `install_requirements.bat` to install some Python requirements
 * Run `main.pyw` to run the script
 
