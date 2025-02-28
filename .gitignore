@@ -1,2 +1,6 @@
 log.txt*
 settings.json
+/build
+/venv
+/dist
+*.spec
