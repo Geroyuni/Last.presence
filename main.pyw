@@ -61,8 +61,7 @@ class LastPresence:
             "username": "",
             "lastfm_api_key": "",
             "discord_rpc_presence": "1131823801454297190",
-            "rpc_enabled": True,
-            "profile_button_enabled": True}
+            "rpc_enabled": True}
 
         try:
             with open("settings.json") as f:
@@ -235,12 +234,8 @@ class LastPresence:
 
             logging.info(f"Created shortcut at {self.shortcut_startup_path}")
 
-        def set_button(_, item):
-            toggle_setting("profile_button_enabled", item)
-            self.update_presence(force_update=True)
-
         def set_app(_, item):
-            """Alters name shown to right of 'Playing' and above song name."""
+            """Alters name shown next to 'Listening to' and above song name."""
             app_id = self.apps[str(item)]
             self.settings["discord_rpc_presence"] = app_id
 
@@ -258,7 +253,6 @@ class LastPresence:
             return app_id == self.settings["discord_rpc_presence"]
 
         check_rpc = lambda _: self.settings["rpc_enabled"]
-        check_button = lambda _: self.settings["profile_button_enabled"]
         check_startup = lambda _: os.path.exists(self.shortcut_startup_path)
 
         app_names = []
@@ -271,7 +265,6 @@ class LastPresence:
             MenuItem("Run at startup", set_startup, check_startup),
             Menu.SEPARATOR,
             MenuItem("Application name", Menu(*app_names)),
-            MenuItem("Show profile button", set_button, check_button),
             Menu.SEPARATOR,
             MenuItem("Open log file", open_log),
             MenuItem('Quit', self.close))
@@ -310,11 +303,10 @@ class LastPresence:
         state = track.artist.name.ljust(2)[:128]
         large_text = None
         end = None
-        button = None
 
         if album:
-            state = f"{track.artist.name} • {album.title}"[:128]
-            large_text = f"Album: {album.title}"[:128]
+            state = f"{track.artist.name}"[:128]
+            large_text = f"{album.title}"[:128]
 
         if duration:
             end = self.last_track_timestamp + (duration / 1000)
@@ -322,14 +314,10 @@ class LastPresence:
         if not cover or "2a96cbd8b46e442fc41c2b86b821562f" in cover:
             cover = "https://files.catbox.moe/qqh1rn.png"
 
-        if self.settings["profile_button_enabled"]:
-            button = [{
-                "label": "View listening profile",
-                "url": f"https://last.fm/user/{self.user.name}"}]
-
         self.rpc.update(
-            details=details, state=state, end=end, large_image=cover,
-            large_text=large_text, buttons=button)
+            details=details, state=state, large_text=large_text,
+            large_image=cover, start=self.last_track_timestamp, end=end,
+            activity_type=pypresence.ActivityType.LISTENING)
 
         logging.info(f"Updated: {track.artist.name} - {track.title}")
 
