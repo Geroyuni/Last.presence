@@ -270,7 +270,10 @@ class LastPresence:
             MenuItem('Quit', self.close))
 
         name = "Last.presence"
-        icon = Image.open(os.path.join(sys._MEIPASS, "icon.ico"))
+        if os.path.isfile("assets/icon.ico"):
+            icon = Image.open("assets/icon.ico")  # when using .pyw for testing
+        else:
+            icon = Image.open(os.path.join(sys._MEIPASS, "icon.ico"))  # .exe
 
         self.tray_icon = pystray.Icon(name, icon, name, menu)
         self.tray_icon.run()
