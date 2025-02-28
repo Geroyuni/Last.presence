@@ -91,6 +91,7 @@ class LastPresence:
         page.window.center()
         page.window.resizable = False
         page.window.maximizable = False
+        page.theme = ft.Theme(color_scheme_seed=ft.Colors.INDIGO)
         center = ft.MainAxisAlignment.CENTER
 
         container_description = ft.Container(content=ft.Text(
@@ -114,27 +115,25 @@ class LastPresence:
             try:
                 user.get_playcount()
             except pylast.WSError:
-                page.dialog = failure_dialog
-                failure_dialog.open = True
+                page.open(failure_dialog)
                 page.update()
             else:
                 self.settings["username"] = username.value
                 self.settings["lastfm_api_key"] = api_key.value
                 self.save_settings()
 
-                page.dialog = success_dialog
-                success_dialog.open = True
+                page.open(success_dialog)
                 page.update()
 
         def create_api_click(_, *args):
             webbrowser.open("http://last.fm/api/account/create")
 
         def close_failure_dialog(_):
-            failure_dialog.open = False
+            page.close(failure_dialog)
             page.update()
 
         def close_success_dialog(_):
-            page.window_close()
+            page.window.close()
 
         continue_button = ft.FilledButton(
             "Continue", on_click=continue_click)
