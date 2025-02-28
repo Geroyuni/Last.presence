@@ -29,8 +29,8 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)-8s %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S", handlers=[rotating_file_handler])
 
-for l in logging.root.manager.loggerDict:
-    logging.getLogger(l).setLevel(logging.WARNING)
+for logger in logging.root.manager.loggerDict:
+    logging.getLogger(logger).setLevel(logging.WARNING)
 
 
 class LastPresence:
@@ -173,7 +173,7 @@ class LastPresence:
         while True:
             try:
                 self.rpc.connect()
-                logging.info(f"Connected to Discord RPC")
+                logging.info("Connected to Discord RPC")
                 break
             except pypresence.exceptions.DiscordNotFound:
                 logging.error("Discord not found, retrying in 10s")
@@ -290,7 +290,7 @@ class LastPresence:
 
         self.last_track = track
 
-        if track == None:
+        if track is None:
             self.rpc.clear()
             logging.info("No song detected, cleared rich presence.")
             return
