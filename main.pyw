@@ -358,6 +358,13 @@ class LastPresence:
                 logging.warning(f"pylast.NetworkError '{e}'")
             except (pylast.PyLastError, pypresence.PyPresenceException):
                 logging.warning(traceback.format_exc())
+            except Exception:
+                logging.error(traceback.format_exc())
+                logging.error(
+                    "Uncatched exception. Restarting program shortly")
+
+                time.sleep(10)  # In case this loops, avoid hammering system
+                self.restart()
 
             time.sleep(10)
 
