@@ -51,6 +51,7 @@ class LastPresence:
         self.last_track = None
         self.last_track_timestamp = None
         self.tray_icon = None
+        self.build_version = "2025-08-30"
 
         self.load_and_check_settings()
         self.setup_lastfm()
@@ -165,6 +166,7 @@ class LastPresence:
             api_key=self.settings["lastfm_api_key"])
         self.user = self.network.get_user(self.settings["username"])
         logging.info(f"Connected as {self.user.name}")
+        logging.info(f"Using Last.presence {self.build_version}")
 
     def setup_rpc(self):
         """Set up Discord RPC."""
@@ -280,7 +282,7 @@ class LastPresence:
             MenuItem("Restart", self.restart),
             MenuItem('Quit', self.close))
 
-        name = "Last.presence"
+        name = f"Last.presence ({self.build_version})"
         if os.path.isfile("assets/icon.ico"):
             icon = Image.open("assets/icon.ico")  # when using .pyw for testing
         else:
