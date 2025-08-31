@@ -23,7 +23,7 @@ import pylast
 ctypes.windll.shcore.SetProcessDpiAwareness(True)  # Avoids blurry context menu
 
 rotating_file_handler = RotatingFileHandler(
-    filename="log.txt", mode="a", maxBytes=5*1024*1024,
+    filename="log.txt", mode="a", maxBytes=5 * 1024 * 1024,
     backupCount=1, encoding="utf-8", delay=0)
 
 logging.basicConfig(
@@ -319,8 +319,7 @@ class LastPresence:
         end = None
 
         if album:
-            state = f"{track.artist.name}"[:128]
-            large_text = f"{album.title}"[:128]
+            large_text = album.title.ljust(2)[:128]
 
         if duration:
             end = self.last_track_timestamp + (duration / 1000)
