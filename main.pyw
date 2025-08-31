@@ -1,5 +1,6 @@
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
+import subprocess
 import threading
 import traceback
 import logging
@@ -185,6 +186,18 @@ class LastPresence:
         self.tray_icon.stop()
         logging.info("Closed RPC and tray icon cleanly")
 
+    def restart(self):
+        """Clean things up and restart."""
+        self.close()
+        logging.info("Restarting")
+
+        if hasattr(sys, 'frozen'):
+            subprocess.Popen(
+                [sys.executable],
+                env={**os.environ, "PYINSTALLER_RESET_ENVIRONMENT": "1"})
+        else:
+            subprocess.Popen([sys._MEIPASS])
+
     def run_tray_icon(self):
         """Create and run tray icon that contains settings."""
 
@@ -205,9 +218,7 @@ class LastPresence:
             if username == new_username and api_key == new_api_key:
                 return
 
-            self.close()
-            os.execv(
-                sys.executable, [os.path.basename(sys.executable)] + sys.argv)
+            self.restart()
 
         def set_rpc(_, item):
             """Allows or prevents RPC from updating while script is running."""
@@ -266,6 +277,7 @@ class LastPresence:
             MenuItem("Application name", Menu(*app_names)),
             Menu.SEPARATOR,
             MenuItem("Open log file", open_log),
+            MenuItem("Restart", self.restart),
             MenuItem('Quit', self.close))
 
         name = "Last.presence"
