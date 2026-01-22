@@ -37,13 +37,9 @@ for logger in logging.root.manager.loggerDict:
 class LastPresence:
     """Takes your current song in Last.fm, puts it in your Discord profile."""
     def __init__(self):
-        self.apps = {
-            "Last.fm": "1131823801454297190",
-            "Music": "1204332455729827900",
-            "YT Music": "1204315253085839371",
-            "YouTube Music": "1204329359616376882",
-            "Apple Music": "1204329881563828274",
-            "Tidal": "1204332410872004628"}
+        self.app_names = [
+            "Use artist name", "Last.fm", "Music", "YT Music",
+            "YouTube Music", "Apple Music", "Tidal"]
         self.shortcut_startup_path = os.path.join(
             os.getenv("appdata"),
             "Microsoft\\Windows\\Start Menu\\Programs\\Startup",
@@ -62,7 +58,7 @@ class LastPresence:
         default_settings = {
             "username": "",
             "lastfm_api_key": "",
-            "discord_rpc_presence": "1131823801454297190",
+            "app_name": "Use artist name",
             "rpc_enabled": True}
 
         try:
@@ -70,6 +66,20 @@ class LastPresence:
                 self.settings = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             self.settings = default_settings
+
+        # For people upgrading from old versions
+        if self.settings.get("discord_rpc_presence"):
+            self.old_app_ids = {
+                "1131823801454297190": "Last.fm",
+                "1204332455729827900": "Music",
+                "1204315253085839371": "YT Music",
+                "1204329359616376882": "YouTube Music",
+                "1204329881563828274": "Apple Music",
+                "1204332410872004628": "Tidal"}
+
+            old_setting = self.settings.pop("discord_rpc_presence")
+            self.settings["app_name"] = self.old_app_ids[old_setting]
+            self.save_settings()
 
         for setting in ("username", "lastfm_api_key"):
             if not self.settings[setting]:
@@ -177,7 +187,7 @@ class LastPresence:
 
     def setup_rpc(self):
         """Set up Discord RPC."""
-        self.rpc = pypresence.Presence(self.settings["discord_rpc_presence"])
+        self.rpc = pypresence.Presence("1204332455729827900")
 
         while True:
             try:
@@ -254,30 +264,26 @@ class LastPresence:
 
             logging.info(f"Created shortcut at {self.shortcut_startup_path}")
 
-        def set_app(_, item):
-            """Alters name shown next to 'Listening to' and above song name."""
-            app_id = self.apps[str(item)]
-            self.settings["discord_rpc_presence"] = app_id
+        def set_name(_, item):
+            """Alters name shown next to music icon and above song name."""
+            self.settings["app_name"] = str(item)
 
             self.save_settings()
-            self.rpc.close()
-            self.setup_rpc()
             self.update_presence(force_update=True)
 
         def open_log(_, item):
             os.startfile("log.txt")
 
         @staticmethod
-        def check_app(item):
-            app_id = self.apps[str(item)]
-            return app_id == self.settings["discord_rpc_presence"]
+        def check_name(item):
+            return str(item) == self.settings["app_name"]
 
         check_rpc = lambda _: self.settings["rpc_enabled"]
         check_startup = lambda _: os.path.exists(self.shortcut_startup_path)
 
         app_names = []
-        for app in self.apps:
-            app_names.append(MenuItem(app, set_app, check_app, radio=True))
+        for app in self.app_names:
+            app_names.append(MenuItem(app, set_name, check_name, radio=True))
 
         menu = Menu(
             MenuItem(f"Connected as {lastpresence.user.name}", show_setup),
@@ -323,23 +329,32 @@ class LastPresence:
         cover = track.get_cover_image()
         duration = track.get_duration()
 
-        details = track.title.ljust(2)[:128]
-        state = track.artist.name.ljust(2)[:128]
-        large_text = None
-        end = None
+        name_app = self.settings["app_name"]
+        name_track = track.title.ljust(2)[:128]
+        name_artist = track.artist.name.ljust(2)[:128]
+        name_album = None
+        end_timestamp = None
+
+        if name_app == "Use artist name":
+            name_app = name_artist[:64]
 
         if album:
-            large_text = album.title.ljust(2)[:128]
+            name_album = album.title.ljust(2)[:128]
 
         if duration:
-            end = self.last_track_timestamp + (duration / 1000)
+            end_timestamp = self.last_track_timestamp + (duration / 1000)
 
         if not cover or "2a96cbd8b46e442fc41c2b86b821562f" in cover:
             cover = "https://files.catbox.moe/qqh1rn.png"
 
         self.rpc.update(
-            details=details, state=state, large_text=large_text,
-            large_image=cover, start=self.last_track_timestamp, end=end,
+            name=name_app,
+            details=name_track,
+            state=name_artist,
+            large_text=name_album,
+            large_image=cover,
+            start=self.last_track_timestamp,
+            end=end_timestamp,
             activity_type=pypresence.ActivityType.LISTENING)
 
         logging.info(f"Updated: {track.artist.name} - {track.title}")
