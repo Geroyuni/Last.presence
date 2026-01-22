@@ -1,7 +1,7 @@
 flet==0.27.2
 pillow==11.1.0
 pylast==5.3.0
-pypresence @ git+https://github.com/qwertyquerty/pypresence@f856cca
+pypresence==4.6.1
 pystray==0.19.5
 pywin32==308
 winshell==0.6
