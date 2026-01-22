@@ -47,7 +47,7 @@ class LastPresence:
         self.last_track = None
         self.last_track_timestamp = None
         self.tray_icon = None
-        self.build_version = "2025-08-30"
+        self.build_version = "2026-01-21"
 
         self.load_and_check_settings()
         self.setup_lastfm()
