@@ -130,6 +130,9 @@ class LastPresence:
         def create_api_click(_, *args):
             webbrowser.open("http://last.fm/api/account/create")
 
+        def manage_api_click(_, *args):
+            webbrowser.open("http://last.fm/api/accounts")
+
         def close_failure_dialog(_):
             page.close(failure_dialog)
             page.update()
@@ -141,6 +144,8 @@ class LastPresence:
             "Continue", on_click=continue_click)
         create_api_button = ft.OutlinedButton(
             "Create API key", on_click=create_api_click)
+        manage_api_button = ft.OutlinedButton(
+            "Manage API keys", on_click=manage_api_click)
         failure_dialog = ft.AlertDialog(
             title=ft.Text("Error"),
             content=ft.Text("Invalid username or API key, please re-check."),
@@ -158,7 +163,9 @@ class LastPresence:
             ft.Row([container_description], alignment=center),
             ft.Row([username], alignment=center),
             ft.Row([container_api_key], alignment=center),
-            ft.Row([continue_button, create_api_button], alignment=center))
+            ft.Row(
+                [continue_button, create_api_button, manage_api_button],
+                alignment=center))
 
     def setup_lastfm(self):
         """Set up Last.fm."""
