@@ -191,6 +191,7 @@ class LastPresence:
 
     def close(self):
         """Clean things up and close cleanly."""
+        self.rpc.clear()
         self.rpc.close()
         self.tray_icon.stop()
         logging.info("Closed RPC and tray icon cleanly")
