@@ -17,6 +17,6 @@ Get [Python 3.10+](https://www.python.org/downloads/) and [upx (optional but sma
 - Run the included `build.bat` in the folder for building
 
 ## Interacting with the program
-At the start, the program will request your Last.fm username and API. After that, it runs as a small icon in the tray bar, at the bottom right. You can right-click it to change settings (e.g. hide the profile button, make it run at startup), or open the log file if there are any issues.
+At the start, the program will request your Last.fm username and API. After that, it runs as a small icon in the tray bar, at the bottom right. You can right-click it to change settings (e.g. change status name, make it run at startup), or open the log file if there are any issues.
 
 ![](tray_icon.png)
