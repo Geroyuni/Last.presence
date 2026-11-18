@@ -1,3 +1,8 @@
+> [!WARNING]
+> Last.fm [just announced they'll make API keys paid](https://support.last.fm/t/api-keys-will-require-pro-from-1st-december/121030), so this app will stop working December 1st. These two points mean I'll likely archive the project rather than pay for the key:
+> - I believe [Vencord](https://vencord.dev/)'s MusicRichPresence plugin is most of the way there for what my app does, barring maybe the song duration progress bar if I recall. If someone who makes the plugin is willing to pay then it'd be the go-to. Alternatively, it also supports Listenbrainz. Vencord is already a must to de-enshittify Discord, so I recommend using it along with the plugin. Recommended plugin settings: Status Name '{artist}', Use Listening Status 'ON', and remove any Last.fm branding 
+> - I'm personally not fond of Last.fm's lack of notable updates, and Web Scrobbler appears to have low community interest for maintenance such that YTMusic has been broken in it for over a year. This has made me very uninterested in Last.fm
+
 # Last.presence
 This app takes your current song in Last.fm (a website which can be made to track any streaming service you use) and puts it in your Discord profile, using Discord Rich Presence (RPC).
 
